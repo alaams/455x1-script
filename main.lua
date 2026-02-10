@@ -1,52 +1,71 @@
--- 455x1 script | XENO EXECUTOR
--- UI + Infinity Jump + Fly + Stop + Noclip + WalkSpeed + Guardar/Cargar Config + Botón flotante
-
+-- 455x1 SCRIPT | UI COMPACTA + ALERTAS + ANIMACIONES
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local Player = Players.LocalPlayer
 
 -- ================= VARIABLES =================
 local humanoid, root
-local flying, frozen, noclip, enabledJump, walkActive = false, false, false, false, false
-local flySpeed, walkSpeed = 70, 16
-local minFlySpeed, maxFlySpeed = 20, 300
-local minWalkSpeed, maxWalkSpeed = 16, 500
+local flying, frozen, noclip, infJump, walkActive = false,false,false,false,false
+local flySpeed, walkSpeed = 70,16
+local minFlySpeed, maxFlySpeed = 20,300
+local minWalkSpeed, maxWalkSpeed = 16,500
 local control = {F=0,B=0,L=0,R=0,U=0,D=0}
 
--- Folder para configs
-local configFolder = Player:FindFirstChild("XenoConfigs") or Instance.new("Folder", Player)
-configFolder.Name = "XenoConfigs"
-
--- ================= UI PRINCIPAL =================
-local gui = Instance.new("ScreenGui", Player:WaitForChild("PlayerGui"))
-gui.Name = "455x1_Xeno"
+-- ================= UI =================
+local gui = Instance.new("ScreenGui")
+gui.Name = "XenoUI"
+gui.Parent = Player:WaitForChild("PlayerGui")
 gui.ResetOnSpawn = false
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 320, 0, 580)
-frame.Position = UDim2.new(0, 50, 0, 50)
+-- Fondo compacto
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0,280,0,380)
+frame.Position = UDim2.new(0,50,0,50)
 frame.BackgroundColor3 = Color3.fromRGB(18,8,9)
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+frame.Parent = gui
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,12)
 
--- ================= TITULO =================
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1, -10, 0, 24)
+-- Título
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,-10,0,25)
 title.Position = UDim2.new(0,5,0,5)
 title.BackgroundTransparency = 1
-title.Text = "455x1 script"
+title.Text = "455x1 Script"
 title.TextColor3 = Color3.fromRGB(204,45,45)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 14
 title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = frame
 
--- ================= FUNCION PARA CREAR BOTONES =================
-local function createButton(text, y)
-    local b = Instance.new("TextButton", frame)
-    b.Size = UDim2.new(1, -20, 0, 36)
+-- ================= FUNCIONES =================
+-- Función para mostrar alerta
+local function showAlert(text,posY)
+    local alert = Instance.new("TextLabel")
+    alert.Size = UDim2.new(0,140,0,20)
+    alert.Position = UDim2.new(0.5,-70,0,posY-25)
+    alert.BackgroundTransparency = 0.7
+    alert.BackgroundColor3 = Color3.fromRGB(0,0,0)
+    alert.TextColor3 = Color3.fromRGB(255,255,255)
+    alert.Text = text
+    alert.Font = Enum.Font.GothamBold
+    alert.TextSize = 12
+    alert.Parent = frame
+
+    -- Tween fade out
+    local tween = TweenService:Create(alert,TweenInfo.new(0.8),{TextTransparency=1,BackgroundTransparency=1,Position=UDim2.new(0.5,-70,0,posY-45)})
+    tween:Play()
+    tween.Completed:Connect(function() alert:Destroy() end)
+end
+
+-- Función para crear botones
+local function createButton(text,y)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1,-20,0,36)
     b.Position = UDim2.new(0,10,0,y)
     b.BackgroundColor3 = Color3.fromRGB(50,50,50)
     b.Text = text
@@ -54,81 +73,87 @@ local function createButton(text, y)
     b.Font = Enum.Font.GothamBold
     b.TextSize = 14
     b.BorderSizePixel = 0
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
+    local corner = Instance.new("UICorner",b)
+    corner.CornerRadius = UDim.new(0,10)
+    b.Parent = frame
     return b
 end
 
--- Botones principales
-local jumpBtn   = createButton("Infinity Jump : OFF", 40)
-local stopBtn   = createButton("STOP : OFF", 85)
-local flyBtn    = createButton("FLY : OFF", 130)
-local noclipBtn = createButton("NOCLIP : OFF", 175)
-local walkBtn   = createButton("Walk Speed : OFF", 220)
-local saveBtn   = createButton("Guardar Config", 410)
-local loadBtn   = createButton("Cargar Config", 455)
+-- ================= BOTONES =================
+local jumpBtn = createButton("Infinity Jump : OFF",40)
+local stopBtn = createButton("STOP : OFF",85)
+local flyBtn = createButton("FLY : OFF",130)
+local noclipBtn = createButton("NOCLIP : OFF",175)
+local walkBtn = createButton("Walk Speed : OFF",220)
 
 -- Fly Speed
-local flySpeedLabel = Instance.new("TextLabel", frame)
-flySpeedLabel.Position = UDim2.new(0,10,0,260)
-flySpeedLabel.Size = UDim2.new(1,-20,0,20)
-flySpeedLabel.BackgroundTransparency = 1
-flySpeedLabel.TextColor3 = Color3.fromRGB(220,220,220)
-flySpeedLabel.Font = Enum.Font.Gotham
-flySpeedLabel.TextSize = 14
-flySpeedLabel.Text = "Fly Speed: "..flySpeed
+local flyLbl = Instance.new("TextLabel")
+flyLbl.Position = UDim2.new(0,10,0,260)
+flyLbl.Size = UDim2.new(1,-20,0,20)
+flyLbl.BackgroundTransparency = 1
+flyLbl.TextColor3 = Color3.fromRGB(220,220,220)
+flyLbl.Font = Enum.Font.Gotham
+flyLbl.TextSize = 14
+flyLbl.Text = "Fly Speed: "..flySpeed
+flyLbl.Parent = frame
 
-local flySpeedUp = Instance.new("TextButton", frame)
-flySpeedUp.Size = UDim2.new(0,60,0,30)
-flySpeedUp.Position = UDim2.new(0.5,10,0,290)
-flySpeedUp.BackgroundColor3 = Color3.fromRGB(50,50,50)
-flySpeedUp.Text = "+"
-flySpeedUp.TextColor3 = Color3.fromRGB(220,220,220)
-flySpeedUp.Font = Enum.Font.GothamBold
-flySpeedUp.TextSize = 18
-Instance.new("UICorner", flySpeedUp).CornerRadius = UDim.new(0,6)
+local flyUp = Instance.new("TextButton")
+flyUp.Size = UDim2.new(0,60,0,30)
+flyUp.Position = UDim2.new(0.5,10,0,285)
+flyUp.BackgroundColor3 = Color3.fromRGB(50,50,50)
+flyUp.Text = "+"
+flyUp.TextColor3 = Color3.fromRGB(220,220,220)
+flyUp.Font = Enum.Font.GothamBold
+flyUp.TextSize = 18
+Instance.new("UICorner", flyUp).CornerRadius = UDim.new(0,6)
+flyUp.Parent = frame
 
-local flySpeedDown = Instance.new("TextButton", frame)
-flySpeedDown.Size = UDim2.new(0,60,0,30)
-flySpeedDown.Position = UDim2.new(0.5,-70,0,290)
-flySpeedDown.BackgroundColor3 = Color3.fromRGB(50,50,50)
-flySpeedDown.Text = "-"
-flySpeedDown.TextColor3 = Color3.fromRGB(220,220,220)
-flySpeedDown.Font = Enum.Font.GothamBold
-flySpeedDown.TextSize = 18
-Instance.new("UICorner", flySpeedDown).CornerRadius = UDim.new(0,6)
+local flyDown = Instance.new("TextButton")
+flyDown.Size = UDim2.new(0,60,0,30)
+flyDown.Position = UDim2.new(0.5,-70,0,285)
+flyDown.BackgroundColor3 = Color3.fromRGB(50,50,50)
+flyDown.Text = "-"
+flyDown.TextColor3 = Color3.fromRGB(220,220,220)
+flyDown.Font = Enum.Font.GothamBold
+flyDown.TextSize = 18
+Instance.new("UICorner", flyDown).CornerRadius = UDim.new(0,6)
+flyDown.Parent = frame
 
 -- Walk Speed
-local walkSpeedLabel = Instance.new("TextLabel", frame)
-walkSpeedLabel.Position = UDim2.new(0,10,0,330)
-walkSpeedLabel.Size = UDim2.new(1,-20,0,20)
-walkSpeedLabel.BackgroundTransparency = 1
-walkSpeedLabel.TextColor3 = Color3.fromRGB(220,220,220)
-walkSpeedLabel.Font = Enum.Font.Gotham
-walkSpeedLabel.TextSize = 14
-walkSpeedLabel.Text = "Walk Speed: "..walkSpeed
+local walkLbl = Instance.new("TextLabel")
+walkLbl.Position = UDim2.new(0,10,0,330)
+walkLbl.Size = UDim2.new(1,-20,0,20)
+walkLbl.BackgroundTransparency = 1
+walkLbl.TextColor3 = Color3.fromRGB(220,220,220)
+walkLbl.Font = Enum.Font.Gotham
+walkLbl.TextSize = 14
+walkLbl.Text = "Walk Speed: "..walkSpeed
+walkLbl.Parent = frame
 
-local walkSpeedUp = Instance.new("TextButton", frame)
-walkSpeedUp.Size = UDim2.new(0,60,0,30)
-walkSpeedUp.Position = UDim2.new(0.5,10,0,360)
-walkSpeedUp.BackgroundColor3 = Color3.fromRGB(50,50,50)
-walkSpeedUp.Text = "+"
-walkSpeedUp.TextColor3 = Color3.fromRGB(220,220,220)
-walkSpeedUp.Font = Enum.Font.GothamBold
-walkSpeedUp.TextSize = 18
-Instance.new("UICorner", walkSpeedUp).CornerRadius = UDim.new(0,6)
+local walkUp = Instance.new("TextButton")
+walkUp.Size = UDim2.new(0,60,0,30)
+walkUp.Position = UDim2.new(0.5,10,0,360)
+walkUp.BackgroundColor3 = Color3.fromRGB(50,50,50)
+walkUp.Text = "+"
+walkUp.TextColor3 = Color3.fromRGB(220,220,220)
+walkUp.Font = Enum.Font.GothamBold
+walkUp.TextSize = 18
+Instance.new("UICorner", walkUp).CornerRadius = UDim.new(0,6)
+walkUp.Parent = frame
 
-local walkSpeedDown = Instance.new("TextButton", frame)
-walkSpeedDown.Size = UDim2.new(0,60,0,30)
-walkSpeedDown.Position = UDim2.new(0.5,-70,0,360)
-walkSpeedDown.BackgroundColor3 = Color3.fromRGB(50,50,50)
-walkSpeedDown.Text = "-"
-walkSpeedDown.TextColor3 = Color3.fromRGB(220,220,220)
-walkSpeedDown.Font = Enum.Font.GothamBold
-walkSpeedDown.TextSize = 18
-Instance.new("UICorner", walkSpeedDown).CornerRadius = UDim.new(0,6)
+local walkDown = Instance.new("TextButton")
+walkDown.Size = UDim2.new(0,60,0,30)
+walkDown.Position = UDim2.new(0.5,-70,0,360)
+walkDown.BackgroundColor3 = Color3.fromRGB(50,50,50)
+walkDown.Text = "-"
+walkDown.TextColor3 = Color3.fromRGB(220,220,220)
+walkDown.Font = Enum.Font.GothamBold
+walkDown.TextSize = 18
+Instance.new("UICorner", walkDown).CornerRadius = UDim.new(0,6)
+walkDown.Parent = frame
 
--- ================= BOTON FLOTANTE DE APAGAR UI =================
-local toggleBtn = Instance.new("TextButton", gui)
+-- ================= BOTÓN FLOTANTE =================
+local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(0,50,0,50)
 toggleBtn.Position = UDim2.new(0,5,0,200)
 toggleBtn.Text = "UI"
@@ -137,8 +162,9 @@ toggleBtn.BackgroundColor3 = Color3.fromRGB(204,45,45)
 toggleBtn.Font = Enum.Font.GothamBold
 toggleBtn.TextSize = 14
 Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0,25)
+toggleBtn.Parent = gui
 
--- Drag del botón flotante
+-- Drag botón flotante
 local dragging, dragInput, dragStart, startPos
 toggleBtn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -152,20 +178,17 @@ toggleBtn.InputBegan:Connect(function(input)
         end)
     end
 end)
-
 toggleBtn.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseMovement then
         dragInput = input
     end
 end)
-
 RunService.RenderStepped:Connect(function()
     if dragging and dragInput then
         local delta = dragInput.Position - dragStart
         toggleBtn.Position = UDim2.new(0, startPos.X.Offset + delta.X, 0, startPos.Y.Offset + delta.Y)
     end
 end)
-
 toggleBtn.MouseButton1Click:Connect(function()
     frame.Visible = not frame.Visible
 end)
@@ -174,40 +197,37 @@ end)
 local function onChar(char)
     humanoid = char:WaitForChild("Humanoid")
     root = char:WaitForChild("HumanoidRootPart")
-    humanoid.BreakJointsOnDeath = false
     if walkActive then humanoid.WalkSpeed = walkSpeed end
 end
-
 if Player.Character then onChar(Player.Character) end
 Player.CharacterAdded:Connect(onChar)
 
--- Infinity Jump
+-- ================= FUNCIONES DE BOTONES =================
 jumpBtn.MouseButton1Click:Connect(function()
-    enabledJump = not enabledJump
-    jumpBtn.Text = enabledJump and "Infinity Jump : ON" or "Infinity Jump : OFF"
-    jumpBtn.BackgroundColor3 = enabledJump and Color3.fromRGB(204,45,45) or Color3.fromRGB(50,50,50)
+    infJump = not infJump
+    jumpBtn.Text = infJump and "Infinity Jump : ON" or "Infinity Jump : OFF"
+    jumpBtn.BackgroundColor3 = infJump and Color3.fromRGB(204,45,45) or Color3.fromRGB(50,50,50)
+    showAlert(jumpBtn.Text,jumpBtn.Position.Y.Offset)
 end)
 UIS.JumpRequest:Connect(function()
-    if enabledJump and humanoid then
-        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-    end
+    if infJump and humanoid then humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end
 end)
 
 -- Fly
-local bv, bg
+local bv,bg
 local function startFly()
     if not root then return end
     bv = Instance.new("BodyVelocity", root)
     bv.MaxForce = Vector3.new(1e9,1e9,1e9)
     bg = Instance.new("BodyGyro", root)
     bg.MaxTorque = Vector3.new(1e9,1e9,1e9)
-    RunService:BindToRenderStep("Fly", 0, function()
-        if not root then return end
-        local move = (workspace.CurrentCamera.CFrame.LookVector * (control.F + control.B) +
-                      workspace.CurrentCamera.CFrame.RightVector * (control.R + control.L) +
-                      workspace.CurrentCamera.CFrame.UpVector * (control.U + control.D))
-        bv.Velocity = move * flySpeed
-        bg.CFrame = workspace.CurrentCamera.CFrame
+    RunService:BindToRenderStep("Fly",0,function()
+        local cam = workspace.CurrentCamera
+        local move = (cam.CFrame.LookVector*(control.F-control.B)
+                     + cam.CFrame.RightVector*(control.R-control.L)
+                     + cam.CFrame.UpVector*(control.U-control.D))
+        bv.Velocity = move*flySpeed
+        bg.CFrame = cam.CFrame
     end)
 end
 local function stopFly()
@@ -221,132 +241,76 @@ flyBtn.MouseButton1Click:Connect(function()
     if flying then startFly() else stopFly() end
     flyBtn.Text = flying and "FLY : ON" or "FLY : OFF"
     flyBtn.BackgroundColor3 = flying and Color3.fromRGB(204,45,45) or Color3.fromRGB(50,50,50)
+    showAlert(flyBtn.Text,flyBtn.Position.Y.Offset)
 end)
 
--- Stop
 stopBtn.MouseButton1Click:Connect(function()
     frozen = not frozen
     if frozen then
-        flying = false
+        flying=false
         stopFly()
-        if root then root.Anchored = true end
-        if humanoid then humanoid.PlatformStand = true end
-        stopBtn.Text = "STOP : ON"
+        if root then root.Anchored=true end
+        if humanoid then humanoid.PlatformStand=true end
         stopBtn.BackgroundColor3 = Color3.fromRGB(204,45,45)
+        stopBtn.Text="STOP : ON"
     else
-        if root then root.Anchored = false end
-        if humanoid then humanoid.PlatformStand = false end
-        stopBtn.Text = "STOP : OFF"
+        if root then root.Anchored=false end
+        if humanoid then humanoid.PlatformStand=false end
         stopBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+        stopBtn.Text="STOP : OFF"
     end
+    showAlert(stopBtn.Text,stopBtn.Position.Y.Offset)
 end)
 
--- Noclip
 noclipBtn.MouseButton1Click:Connect(function()
     noclip = not noclip
-    noclipBtn.Text = noclip and "NOCLIP : ON" or "NOCLIP : OFF"
     noclipBtn.BackgroundColor3 = noclip and Color3.fromRGB(204,45,45) or Color3.fromRGB(50,50,50)
+    noclipBtn.Text = noclip and "NOCLIP : ON" or "NOCLIP : OFF"
+    showAlert(noclipBtn.Text,noclipBtn.Position.Y.Offset)
 end)
 RunService.Stepped:Connect(function()
     if noclip and Player.Character then
         for _,v in pairs(Player.Character:GetDescendants()) do
-            if v:IsA("BasePart") then v.CanCollide = false end
+            if v:IsA("BasePart") then v.CanCollide=false end
         end
     end
 end)
 
 -- Fly Speed
-local function updateFlySpeedLabel() flySpeedLabel.Text = "Fly Speed: "..flySpeed end
-flySpeedUp.MouseButton1Click:Connect(function()
+flyUp.MouseButton1Click:Connect(function()
     flySpeed = math.clamp(flySpeed+5,minFlySpeed,maxFlySpeed)
-    updateFlySpeedLabel()
+    flyLbl.Text="Fly Speed: "..flySpeed
+    showAlert("Fly Speed +"..flySpeed,flyUp.Position.Y.Offset)
 end)
-flySpeedDown.MouseButton1Click:Connect(function()
+flyDown.MouseButton1Click:Connect(function()
     flySpeed = math.clamp(flySpeed-5,minFlySpeed,maxFlySpeed)
-    updateFlySpeedLabel()
+    flyLbl.Text="Fly Speed: "..flySpeed
+    showAlert("Fly Speed "..flySpeed,flyDown.Position.Y.Offset)
 end)
 
 -- Walk Speed
-local function updateWalkSpeedLabel()
-    walkSpeedLabel.Text = "Walk Speed: "..walkSpeed
-    if humanoid and walkActive then humanoid.WalkSpeed = walkSpeed end
-end
-walkSpeedUp.MouseButton1Click:Connect(function()
+walkUp.MouseButton1Click:Connect(function()
     walkSpeed = math.clamp(walkSpeed+5,minWalkSpeed,maxWalkSpeed)
-    updateWalkSpeedLabel()
+    walkLbl.Text="Walk Speed: "..walkSpeed
+    if walkActive and humanoid then humanoid.WalkSpeed=walkSpeed end
+    showAlert("Walk Speed +"..walkSpeed,walkUp.Position.Y.Offset)
 end)
-walkSpeedDown.MouseButton1Click:Connect(function()
+walkDown.MouseButton1Click:Connect(function()
     walkSpeed = math.clamp(walkSpeed-5,minWalkSpeed,maxWalkSpeed)
-    updateWalkSpeedLabel()
+    walkLbl.Text="Walk Speed: "..walkSpeed
+    if walkActive and humanoid then humanoid.WalkSpeed=walkSpeed end
+    showAlert("Walk Speed "..walkSpeed,walkDown.Position.Y.Offset)
 end)
 walkBtn.MouseButton1Click:Connect(function()
     walkActive = not walkActive
     if walkActive then
-        if humanoid then humanoid.WalkSpeed = walkSpeed end
-        walkBtn.Text = "Walk Speed : ON"
+        if humanoid then humanoid.WalkSpeed=walkSpeed end
         walkBtn.BackgroundColor3 = Color3.fromRGB(204,45,45)
+        walkBtn.Text="Walk Speed : ON"
     else
-        if humanoid then humanoid.WalkSpeed = 16 end
-        walkBtn.Text = "Walk Speed : OFF"
+        if humanoid then humanoid.WalkSpeed=16 end
         walkBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+        walkBtn.Text="Walk Speed : OFF"
     end
-end)
-
--- ================= GUARDAR / CARGAR CONFIG =================
-saveBtn.MouseButton1Click:Connect(function()
-    local configName = tostring(os.time()) -- nombre único
-    local conf = Instance.new("Folder", configFolder)
-    conf.Name = configName
-    conf:SetAttribute("FlySpeed", flySpeed)
-    conf:SetAttribute("WalkSpeed", walkSpeed)
-    conf:SetAttribute("FlyEnabled", flying)
-    conf:SetAttribute("StopEnabled", frozen)
-    conf:SetAttribute("JumpEnabled", enabledJump)
-    conf:SetAttribute("NoclipEnabled", noclip)
-    conf:SetAttribute("WalkActive", walkActive)
-    conf:SetAttribute("UIX", frame.Position.X.Offset)
-    conf:SetAttribute("UIY", frame.Position.Y.Offset)
-    print("Configuración guardada: "..configName)
-end)
-
-loadBtn.MouseButton1Click:Connect(function()
-    local conf = configFolder:FindFirstChildOfClass("Folder")
-    if conf then
-        flySpeed = conf:GetAttribute("FlySpeed") or flySpeed
-        walkSpeed = conf:GetAttribute("WalkSpeed") or walkSpeed
-        flying = conf:GetAttribute("FlyEnabled") or false
-        frozen = conf:GetAttribute("StopEnabled") or false
-        enabledJump = conf:GetAttribute("JumpEnabled") or false
-        noclip = conf:GetAttribute("NoclipEnabled") or false
-        walkActive = conf:GetAttribute("WalkActive") or false
-        frame.Position = UDim2.new(0, conf:GetAttribute("UIX") or 50, 0, conf:GetAttribute("UIY") or 50)
-
-        updateFlySpeedLabel()
-        updateWalkSpeedLabel()
-
-        if flying then startFly() else stopFly() end
-        if frozen then
-            if root then root.Anchored = true end
-            if humanoid then humanoid.PlatformStand = true end
-        else
-            if root then root.Anchored = false end
-            if humanoid then humanoid.PlatformStand = false end
-        end
-
-        noclipBtn.Text = noclip and "NOCLIP : ON" or "NOCLIP : OFF"
-        noclipBtn.BackgroundColor3 = noclip and Color3.fromRGB(204,45,45) or Color3.fromRGB(50,50,50)
-
-        walkBtn.Text = walkActive and "Walk Speed : ON" or "Walk Speed : OFF"
-        walkBtn.BackgroundColor3 = walkActive and Color3.fromRGB(204,45,45) or Color3.fromRGB(50,50,50)
-
-        jumpBtn.Text = enabledJump and "Infinity Jump : ON" or "Infinity Jump : OFF"
-        jumpBtn.BackgroundColor3 = enabledJump and Color3.fromRGB(204,45,45) or Color3.fromRGB(50,50,50)
-
-        stopBtn.Text = frozen and "STOP : ON" or "STOP : OFF"
-        stopBtn.BackgroundColor3 = frozen and Color3.fromRGB(204,45,45) or Color3.fromRGB(50,50,50)
-
-        print("Configuración cargada: "..conf.Name)
-    else
-        print("No hay configuraciones guardadas")
-    end
+    showAlert(walkBtn.Text,walkBtn.Position.Y.Offset)
 end)
